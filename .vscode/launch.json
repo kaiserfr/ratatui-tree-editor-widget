@@ -1,0 +1,12 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "lldb Rust",
+            "type": "lldb",
+            "request": "attach",
+            "program": "${env:EXAMPLEPID}/${workspaceFolder}/target/debug/examples/example",
+            "preLaunchTask": "getpid"
+        }
+    ]
+}
