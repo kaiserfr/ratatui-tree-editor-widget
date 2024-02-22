@@ -10,3 +10,16 @@ Key functionalities:
 This is a work in progress, and the widget is not yet fully functional. The current version is a prototype, and the widget is not yet ready for use in production.
 
 ![Screenshot](media/screenshot.png)
+
+## Remarks
+This library is developed with Visual Studio Code and WSL2.
+Some configurations are specific to this environment, such as the launch.json file for debugging.
+
+## Usage
+
+### Run the example 
+cargo run --examples example
+
+### Debugging with vscode and wsl2
+Directly starting the Debugger in vscode with lldb or gdb has issues with the display of the terminal.
+A workaround is to run the program in the terminal using __cargo run --examples example__ and attach the debugger to the running process. In order to do this a vscode launch configuration has been added (see the .vscode folder).
