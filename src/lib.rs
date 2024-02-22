@@ -230,6 +230,45 @@ where
         });
     }
 
+    /// Handles the up arrow key.
+    /// Moves up in the current depth or to its parent.
+    pub fn key_shift_up(&mut self, items: &[TreeItem<Identifier>]) {
+        for item in items {
+            item.traverse( |item: &TreeItem<Identifier>| {});
+        }
+
+        let visible = self.flatten(items);
+        let selected = self.selected();
+
+        let last = selected.last().unwrap();
+        let parent: Option<Identifier> = if selected.len() > 1 {
+            Some(selected[selected.len() - 2].clone())
+        } else {
+            None
+        };
+
+        self.traverse(items, |item| {
+            if item.identifier == *last {
+                return Some(parent.clone());
+            }
+            None
+        });
+
+        // iterate over all items and find the previous item to the selected one
+        let mut previous = None;
+        for item in visible.iter() {
+            if item.identifier == selected {
+                break;
+            }
+            previous = Some(item.identifier.clone());
+        }
+
+        // if there is a previous item, select it
+        if let Some(previous) = previous {
+            self.select(previous);
+        }
+    }
+
     /// Handles the down arrow key.
     /// Moves down in the current depth or into a child node.
     pub fn key_down(&mut self, items: &[TreeItem<Identifier>]) {
@@ -350,6 +389,16 @@ where
     #[must_use]
     pub fn children(&self) -> &[TreeItem<Identifier>] {
         &self.children
+    }
+
+    pub fn traverse<F>(&self, f: F)
+    where
+        F: Fn(&TreeItem<Identifier>),
+    {
+        f(self);
+        for child in &self.children {
+            child.traverse(f);
+        }
     }
 
     /// Get a reference to a child by index.

@@ -124,6 +124,7 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
                 }
                 KeyCode::PageDown => app.state.scroll_down(3),
                 KeyCode::PageUp => app.state.scroll_up(3),
+                KeyCode::Tab => app.state.key_shift_up(&app.items),
                 _ => {}
             },
             Event::Mouse(mouse) => match mouse.kind {
