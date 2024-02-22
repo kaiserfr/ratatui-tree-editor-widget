@@ -1,4 +1,4 @@
-# TUI Tree Widget
+# Ratatui Tree Editor Widget
 
 The Tree Data Structure widget for the ratatui library is engineered to enable easy and fast manipulation of tree data structures using arrow keys, streamlining operations similar to those found in the older Google Tasks, as well as in modern tools like Quire and Microsoft Project.
 
