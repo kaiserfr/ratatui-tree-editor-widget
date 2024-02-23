@@ -1,5 +1,5 @@
 use crossterm::{
-    event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode},
+    event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode, KeyModifiers},
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
@@ -110,6 +110,10 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
 
         match event::read()? {
             Event::Key(key) => match key.code {
+                KeyCode::Up if key.modifiers == KeyModifiers::SHIFT => {
+                    app.state.key_shift_up(&mut app.items)
+                }
+
                 KeyCode::Char('q') => return Ok(()),
                 KeyCode::Char('\n' | ' ') => app.state.toggle_selected(),
                 KeyCode::Left => app.state.key_left(),
@@ -124,9 +128,9 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
                 }
                 KeyCode::PageDown => app.state.scroll_down(3),
                 KeyCode::PageUp => app.state.scroll_up(3),
-                KeyCode::Tab => app.state.key_shift_up(&app.items),
                 _ => {}
             },
+
             Event::Mouse(mouse) => match mouse.kind {
                 event::MouseEventKind::ScrollDown => app.state.scroll_down(1),
                 event::MouseEventKind::ScrollUp => app.state.scroll_up(1),
