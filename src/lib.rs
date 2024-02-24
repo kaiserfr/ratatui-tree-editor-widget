@@ -230,15 +230,14 @@ where
         });
     }
 
-    /// Handles the up arrow key.
-    /// Moves up in the current depth or to its parent.
     pub fn key_shift_up(&mut self, items: &mut [TreeItem<Identifier>]) {
         let mut parent = self.selected();
+        let id_option = parent.pop();
 
-        if self.selected().len() == 1 {
-            let id_option = parent.pop();
-            if let Some(id) = id_option {
-                for (index, item) in items.iter().enumerate() {
+        if let Some(id) = id_option {
+            for (index, item) in items.iter().enumerate() {
+                if self.selected().len() == 1 {
+                    // Top level items
                     if item.identifier == id {
                         if index == 0 {
                             return;
@@ -246,45 +245,20 @@ where
                         items.swap(index, index - 1);
                         return;
                     }
+                } else if self.selected().len() > 1 {
+                    // Nested items
+
+                    let (parent, child, index) = item.traverse(&id);
+                    if let Some(index) = index {
+                        if index == 0 {
+                            return;
+                        }
+                        parent.swap_children(index, index - 1);
+                        return;
+                    }
                 }
             }
         }
-
-        // let visible = self.flatten(items);
-
-        // // let selected_index =
-        // //     items.visible
-        // //         .iter()
-        // //         .position(|o| o.identifier == self.selected());
-
-        // let mut parent_item: Option<&TreeItem<Identifier>> = None;
-        // let mut previous_item: &TreeItem<Identifier>;
-        // let mut selected_item: Option<&TreeItem<Identifier>> = None;
-
-        // for item in visible.iter() {
-        //     if item.identifier == parent {
-        //         parent_item = Some(item.item);
-        //     }
-        // }
-
-        // if parent_item.is_none() {
-        //     return;
-        // }
-
-        // for item in parent_item.unwrap().children() {
-        //     if item.identifier == self.selected().pop().unwrap() {
-        //         selected_item = Some(item);
-        //     }
-        //     previous_item = item;
-        // }
-
-        // if selected_item.is_none() {
-        //     return;
-        // }
-
-        // let children = parent_item.unwrap().children;
-
-        //children.push(selected_item.unwrap().clone());
     }
 
     /// Handles the down arrow key.
@@ -415,10 +389,44 @@ where
     }
 
     #[must_use]
-    pub fn traverse(&mut self) -> () {
-        self.children.iter_mut().for_each(|o| {
-            o.traverse();
-        });
+    // pub fn traverse(
+    //     &mut self,
+    //     id: &Identifier,
+    // ) -> (
+    //     &mut TreeItem<'a, Identifier>,
+    //     Option<&TreeItem<'a, Identifier>>,
+    //     Option<usize>,
+    // ) {
+
+    //     let mut result: (
+    //         &mut TreeItem<'a, Identifier>,
+    //         Option<&TreeItem<'a, Identifier>>,
+    //         Option<usize>,
+    //     );
+
+    //     for (index, child) in self.children.iter_mut().enumerate() {
+    //         if child.identifier == *id {
+    //             let (parent, child, index) = child.traverse(id);
+    //             if child.is_some() {
+    //                 return (parent, child, index);
+    //             }
+    //         }
+    //     }
+    //     (self, None, None)
+    // }
+    #[must_use]
+    pub fn drill_down(&self, id_vec: Vec<Identifier>, idx_vec: Vec<u32>) -> Option<Vec<u32>> {
+        //
+        idvec.pop();
+        subidtree = 3;
+
+        // If idvec has 
+        for (index, child) in self.children.iter().enumerate() {
+            if child.identifier == *subid {
+                idxvec.push(index as u32);
+            }
+        }
+        None
     }
 
     /// Get a reference to a child by index.
