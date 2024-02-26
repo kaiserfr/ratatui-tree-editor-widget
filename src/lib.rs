@@ -248,14 +248,14 @@ where
                 } else if self.selected().len() > 1 {
                     // Nested items
 
-                    let (parent, child, index) = item.traverse(&id);
-                    if let Some(index) = index {
-                        if index == 0 {
-                            return;
-                        }
-                        parent.swap_children(index, index - 1);
-                        return;
-                    }
+                    // let (parent, child, index) = item.traverse(&id);
+                    // if let Some(index) = index {
+                    //     if index == 0 {
+                    //         return;
+                    //     }
+                    //     parent.swap_children(index, index - 1);
+                    //     return;
+                    // }
                 }
             }
         }
@@ -388,46 +388,35 @@ where
         self.children.swap(a, b);
     }
 
+    fn print_item(&self, index: u32, id: Identifier, item: TreeItem<Identifier>) {
+    }
+
     #[must_use]
-    // pub fn traverse(
-    //     &mut self,
-    //     id: &Identifier,
-    // ) -> (
-    //     &mut TreeItem<'a, Identifier>,
-    //     Option<&TreeItem<'a, Identifier>>,
-    //     Option<usize>,
-    // ) {
+    pub fn traverse<F: Fn(u32, Identifier, TreeItem<Identifier>)>(&self, f: &F) -> () {
+        f(0, self.identifier.clone(), self.clone());
+        for (index, child) in self.children.iter().enumerate() {
+            f(index as u32, child.identifier.clone(), child.clone());
+            let _ = child.traverse(f);
+        }
+    }
 
-    //     let mut result: (
-    //         &mut TreeItem<'a, Identifier>,
-    //         Option<&TreeItem<'a, Identifier>>,
-    //         Option<usize>,
-    //     );
+    pub fn do_print(&self) {
+        self.traverse(&|index, id, item| self.print_item(index, id, item));
+    }
 
-    //     for (index, child) in self.children.iter_mut().enumerate() {
-    //         if child.identifier == *id {
-    //             let (parent, child, index) = child.traverse(id);
-    //             if child.is_some() {
-    //                 return (parent, child, index);
-    //             }
+    // pub fn drill_down(&self, id_vec: Vec<Identifier>, idx_vec: Vec<u32>) -> Option<Vec<u32>> {
+    //     //
+    //     idvec.pop();
+    //     subidtree = 3;
+
+    //     // If idvec has
+    //     for (index, child) in self.children.iter().enumerate() {
+    //         if child.identifier == *subid {
+    //             idxvec.push(index as u32);
     //         }
     //     }
-    //     (self, None, None)
+    //     None
     // }
-    #[must_use]
-    pub fn drill_down(&self, id_vec: Vec<Identifier>, idx_vec: Vec<u32>) -> Option<Vec<u32>> {
-        //
-        idvec.pop();
-        subidtree = 3;
-
-        // If idvec has 
-        for (index, child) in self.children.iter().enumerate() {
-            if child.identifier == *subid {
-                idxvec.push(index as u32);
-            }
-        }
-        None
-    }
 
     /// Get a reference to a child by index.
     #[must_use]
