@@ -389,9 +389,15 @@ where
     }
 
     #[must_use]
-    pub fn traverse(&'a self, level: usize, idx: usize, visitor: &mut Visitor<'a, Identifier>) {
+    // pub fn traverse(&'a self, level: usize, idx: usize, visitor: &mut Visitor<'a, Identifier>) {
+    pub fn traverse<T, V: Visitor<'a, T, Identifier>>(
+        &'a self,
+        level: usize,
+        idx: usize,
+        visitor: &mut V,
+    ) {
         let level = level + 1;
-        if visitor.run(level, idx, self) {
+        if visitor.visit(level, idx, self) {
             return;
         }
         for (idx, child) in self.children.iter().enumerate() {
@@ -400,12 +406,13 @@ where
     }
 
     pub fn do_print(&'a self, id: Identifier) {
-        let mut visitor: Visitor<'a, Identifier> = Visitor {
+        let mut visitor = ItemByIdVisitor {
             target_id: id,
             item: None,
         };
+
         let _ = self.traverse(0, 0, &mut visitor);
-        
+
         if let Some(item) = visitor.item {
             println!("top visitor found: {:?}", item.identifier);
         }
@@ -459,28 +466,28 @@ where
     }
 }
 
-pub struct Visitor<'a, Identifier> {
+pub trait Visitor<'a, T, Identifier> {
+    fn visit(&mut self, level: usize, idx: usize, item: &'a TreeItem<Identifier>) -> bool;
+}
+
+pub struct ItemByIdVisitor<'a, Identifier> {
     target_id: Identifier,
     item: Option<&'a TreeItem<'a, Identifier>>,
 }
 
-impl<'a, Identifier> Visitor<'a, Identifier>
+impl<'a, Identifier> Visitor<'a, Identifier, Identifier> for ItemByIdVisitor<'a, Identifier>
 where
     Identifier: Clone + PartialEq + Eq + core::hash::Hash + std::fmt::Debug,
 {
-    fn run(&mut self, level: usize, idx: usize, item: &'a TreeItem<Identifier>) -> bool {
-        println!(
-            "level: {}, idx: {}, id: {:?}",
-            level,
-            idx,
-            item.identifier
-        );
+    fn visit(&mut self, level: usize, idx: usize, item: &'a TreeItem<Identifier>) -> bool {
+        println!("level: {}, idx: {}, id: {:?}", level, idx, item.identifier);
         if self.target_id == item.identifier {
             println!("found: {:?}", item.identifier);
             self.item = Some(item);
-            return true;
+            true
+        } else {
+            false
         }
-        false
     }
 }
 
