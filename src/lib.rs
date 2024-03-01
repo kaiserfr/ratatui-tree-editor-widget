@@ -389,32 +389,38 @@ where
     }
 
     #[must_use]
-    // pub fn traverse(&'a self, level: usize, idx: usize, visitor: &mut Visitor<'a, Identifier>) {
     pub fn traverse<T, V: Visitor<'a, T, Identifier>>(
         &'a self,
         level: usize,
         idx: usize,
         visitor: &mut V,
-    ) {
-        let level = level + 1;
-        if visitor.visit(level, idx, self) {
-            return;
+    ) -> bool {
+        if visitor.visit(level, idx, self) == true {
+            return true;
         }
         for (idx, child) in self.children.iter().enumerate() {
-            let _ = child.traverse(level, idx, visitor);
+            if child.traverse(level + 1, idx, visitor) {
+                return true;
+            };
         }
+        false
     }
 
     pub fn do_print(&'a self, id: Identifier) {
         let mut visitor = ItemByIdVisitor {
             target_id: id,
             item: None,
+            last_level: 0,
+            parent_item: Some(self),
         };
 
-        let _ = self.traverse(0, 0, &mut visitor);
+        let _ = self.traverse(1, 0, &mut visitor);
 
         if let Some(item) = visitor.item {
-            println!("top visitor found: {:?}", item.identifier);
+            println!("item found: {:?}", item.identifier);
+        }
+        if let Some(parent) = visitor.parent_item {
+            println!("parent: {:?}", parent.identifier);
         }
     }
 
@@ -473,6 +479,8 @@ pub trait Visitor<'a, T, Identifier> {
 pub struct ItemByIdVisitor<'a, Identifier> {
     target_id: Identifier,
     item: Option<&'a TreeItem<'a, Identifier>>,
+    last_level: usize,
+    parent_item: Option<&'a TreeItem<'a, Identifier>>,
 }
 
 impl<'a, Identifier> Visitor<'a, Identifier, Identifier> for ItemByIdVisitor<'a, Identifier>
@@ -481,12 +489,17 @@ where
 {
     fn visit(&mut self, level: usize, idx: usize, item: &'a TreeItem<Identifier>) -> bool {
         println!("level: {}, idx: {}, id: {:?}", level, idx, item.identifier);
+        if level == self.last_level {
+            self.parent_item = Some(item);
+        } else {
+            self.last_level = level;
+        }
         if self.target_id == item.identifier {
             println!("found: {:?}", item.identifier);
             self.item = Some(item);
-            true
+            return true;
         } else {
-            false
+            return false;
         }
     }
 }

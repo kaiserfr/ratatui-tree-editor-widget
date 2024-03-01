@@ -57,7 +57,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     // let item = &app.items[1].children()[1];
     let item = &app.items[1];
 
-    item.do_print("c");
+    item.do_print("m");
 
     // print!("{:#?}", item);
     // print!("{:#?}", app);
