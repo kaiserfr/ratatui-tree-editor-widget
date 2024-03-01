@@ -46,7 +46,7 @@ pub struct TreeState<Identifier> {
 
 impl<Identifier> TreeState<Identifier>
 where
-    Identifier: Clone + PartialEq + Eq + core::hash::Hash,
+    Identifier: Clone + PartialEq + Eq + core::hash::Hash + std::fmt::Debug,
 {
     #[must_use]
     pub const fn get_offset(&self) -> usize {
@@ -330,7 +330,7 @@ pub struct TreeItem<'a, Identifier> {
 
 impl<'a, Identifier> TreeItem<'a, Identifier>
 where
-    Identifier: Clone + PartialEq + Eq + core::hash::Hash,
+    Identifier: Clone + PartialEq + Eq + core::hash::Hash + std::fmt::Debug + 'a,
 {
     /// Create a new `TreeItem` without children.
     #[must_use]
@@ -388,35 +388,28 @@ where
         self.children.swap(a, b);
     }
 
-    fn print_item(&self, index: u32, id: Identifier, item: TreeItem<Identifier>) {
-    }
-
     #[must_use]
-    pub fn traverse<F: Fn(u32, Identifier, TreeItem<Identifier>)>(&self, f: &F) -> () {
-        f(0, self.identifier.clone(), self.clone());
-        for (index, child) in self.children.iter().enumerate() {
-            f(index as u32, child.identifier.clone(), child.clone());
-            let _ = child.traverse(f);
+    pub fn traverse(&'a self, level: usize, idx: usize, visitor: &mut Visitor<'a, Identifier>) {
+        let level = level + 1;
+        if visitor.run(level, idx, self) {
+            return;
+        }
+        for (idx, child) in self.children.iter().enumerate() {
+            let _ = child.traverse(level, idx, visitor);
         }
     }
 
-    pub fn do_print(&self) {
-        self.traverse(&|index, id, item| self.print_item(index, id, item));
+    pub fn do_print(&'a self, id: Identifier) {
+        let mut visitor: Visitor<'a, Identifier> = Visitor {
+            target_id: id,
+            item: None,
+        };
+        let _ = self.traverse(0, 0, &mut visitor);
+        
+        if let Some(item) = visitor.item {
+            println!("top visitor found: {:?}", item.identifier);
+        }
     }
-
-    // pub fn drill_down(&self, id_vec: Vec<Identifier>, idx_vec: Vec<u32>) -> Option<Vec<u32>> {
-    //     //
-    //     idvec.pop();
-    //     subidtree = 3;
-
-    //     // If idvec has
-    //     for (index, child) in self.children.iter().enumerate() {
-    //         if child.identifier == *subid {
-    //             idxvec.push(index as u32);
-    //         }
-    //     }
-    //     None
-    // }
 
     /// Get a reference to a child by index.
     #[must_use]
@@ -463,6 +456,31 @@ where
 
         self.children.push(child);
         Ok(())
+    }
+}
+
+pub struct Visitor<'a, Identifier> {
+    target_id: Identifier,
+    item: Option<&'a TreeItem<'a, Identifier>>,
+}
+
+impl<'a, Identifier> Visitor<'a, Identifier>
+where
+    Identifier: Clone + PartialEq + Eq + core::hash::Hash + std::fmt::Debug,
+{
+    fn run(&mut self, level: usize, idx: usize, item: &'a TreeItem<Identifier>) -> bool {
+        println!(
+            "level: {}, idx: {}, id: {:?}",
+            level,
+            idx,
+            item.identifier
+        );
+        if self.target_id == item.identifier {
+            println!("found: {:?}", item.identifier);
+            self.item = Some(item);
+            return true;
+        }
+        false
     }
 }
 
@@ -536,7 +554,7 @@ pub struct Tree<'a, Identifier> {
 
 impl<'a, Identifier> Tree<'a, Identifier>
 where
-    Identifier: Clone + PartialEq + Eq + core::hash::Hash,
+    Identifier: Clone + PartialEq + Eq + core::hash::Hash + std::fmt::Debug,
 {
     /// Create a new `Tree`.
     ///
@@ -625,7 +643,7 @@ fn tree_new_errors_with_duplicate_identifiers() {
 
 impl<'a, Identifier> StatefulWidget for Tree<'a, Identifier>
 where
-    Identifier: Clone + PartialEq + Eq + core::hash::Hash,
+    Identifier: Clone + PartialEq + Eq + core::hash::Hash + std::fmt::Debug,
 {
     type State = TreeState<Identifier>;
 
@@ -765,7 +783,7 @@ where
 
 impl<'a, Identifier> Widget for Tree<'a, Identifier>
 where
-    Identifier: Clone + Default + Eq + core::hash::Hash,
+    Identifier: Clone + Default + Eq + core::hash::Hash + std::fmt::Debug,
 {
     fn render(self, area: Rect, buf: &mut Buffer) {
         let mut state = TreeState::default();
