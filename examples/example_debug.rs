@@ -52,15 +52,12 @@ impl<'a> App<'a> {
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let app = App::new();
+    let mut app = App::new();
 
     // let item = &app.items[1].children()[1];
-    let item = &app.items[1];
+    let item = &mut app.items[1];
 
-    item.do_print("m");
-
-    // print!("{:#?}", item);
-    // print!("{:#?}", app);
-
+    item.do_print4(&"f");
+    item.print_tree(0);
     Ok(())
 }

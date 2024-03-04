@@ -14,6 +14,7 @@ use ratatui::layout::{Corner, Rect};
 use ratatui::style::Style;
 use ratatui::text::Text;
 use ratatui::widgets::{Block, StatefulWidget, Widget};
+use std::collections::VecDeque;
 use unicode_width::UnicodeWidthStr;
 
 mod flatten;
@@ -388,41 +389,67 @@ where
         self.children.swap(a, b);
     }
 
-    #[must_use]
-    pub fn traverse<T, V: Visitor<'a, T, Identifier>>(
-        &'a self,
-        parent: &'a TreeItem<'a, Identifier>,
-        level: usize,
-        idx: usize,
-        visitor: &mut V,
-    ) -> bool {
-        if visitor.visit(level, idx, self, parent) == true {
-            return true;
+    fn get_path_by_id(&self, target: &Identifier) -> Option<Vec<usize>> {
+        let mut stack = VecDeque::new();
+        stack.push_back((vec![], self));
+
+        while let Some((path, item)) = stack.pop_back() {
+            if &item.identifier == target {
+                return Some(path);
+            }
+            for (i, child) in item.children.iter().enumerate() {
+                let mut new_path = path.clone();
+                new_path.push(i);
+                stack.push_back((new_path, child));
+            }
         }
-        for (idx, child) in self.children.iter().enumerate() {
-            if child.traverse(self, level + 1, idx, visitor) {
-                return true;
-            };
-        }
-        false
+
+        None
     }
 
-    pub fn do_print(&'a self, id: Identifier) {
-        let mut visitor = ItemByIdVisitor {
-            target_id: id,
-            item: None,
-            parent_item: None,
-        };
-
-        let _ = self.traverse(self, 0, 0, &mut visitor);
-
-        if let Some(item) = visitor.item {
-            println!("item found: {:?}", item.identifier);
+    fn get_item(&mut self, path: &[usize]) -> &mut TreeItem<'a, Identifier> {
+        let mut item = self;
+        for &i in path {
+            item = &mut item.children[i];
         }
-        if let Some(parent) = visitor.parent_item {
-            println!("parent: {:?}", parent.identifier);
+        item
+    }
+
+    pub fn do_print4(&mut self, target_identifier: &Identifier) {
+        let path = self.get_path_by_id(target_identifier);
+        if let Some(mut path) = path {
+            let item = self.get_item(&path);
+            println!("Item ID: {:?}", item.identifier);
+
+            print_path(&path);
+            println!("");
+
+            // remove the last item from the path
+            let idx = path.pop();
+
+            println!("idx: {}", idx.unwrap());
+
+            print_path(&path);
+
+            let parent = self.get_item(&path);
+            println!("Parent ID: {:?}", parent.identifier);
+
+            parent
+                .children
+                .swap(idx.unwrap()-1, idx.unwrap());
+        } else {
+            println!("Not found");
         }
     }
+
+    pub fn print_tree(&self, level: usize) {
+        let indent = "   ".repeat(level);
+        println!("{}{:?}", indent, self.identifier);
+        for child in &self.children {
+            child.print_tree(level + 1);
+        }
+    }
+
 
     /// Get a reference to a child by index.
     #[must_use]
@@ -472,39 +499,9 @@ where
     }
 }
 
-pub trait Visitor<'a, T, Identifier> {
-    fn visit(&mut self, level: usize, idx: usize, item: &'a TreeItem<Identifier>, parent_item: &'a TreeItem<Identifier>) -> bool;
-}
-
-pub struct ItemByIdVisitor<'a, Identifier> {
-    target_id: Identifier,
-    item: Option<&'a TreeItem<'a, Identifier>>,
-    parent_item: Option<&'a TreeItem<'a, Identifier>>,
-}
-
-impl<'a, Identifier> Visitor<'a, Identifier, Identifier> for ItemByIdVisitor<'a, Identifier>
-where
-    Identifier: Clone + PartialEq + Eq + core::hash::Hash + std::fmt::Debug,
-{
-    fn visit(
-        &mut self,
-        level: usize,
-        idx: usize,
-        item: &'a TreeItem<Identifier>,
-        parent_item: &'a TreeItem<Identifier>
-    ) -> bool {
-        println!(
-            "id: {:?}:, level: {}, idx: {}",
-            item.identifier, level, idx
-        );
-        if self.target_id == item.identifier {
-            println!("     found: {:?}", item.identifier);
-            self.item = Some(item);
-            self.parent_item = Some(parent_item);
-            return true;
-        } else {
-            return false;
-        }
+fn print_path(path: &[usize]) {
+    for i in path {
+        println!("Path: {:?}", i);
     }
 }
 
