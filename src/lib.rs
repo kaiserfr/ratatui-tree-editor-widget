@@ -391,15 +391,16 @@ where
     #[must_use]
     pub fn traverse<T, V: Visitor<'a, T, Identifier>>(
         &'a self,
+        parent: &'a TreeItem<'a, Identifier>,
         level: usize,
         idx: usize,
         visitor: &mut V,
     ) -> bool {
-        if visitor.visit(level, idx, self) == true {
+        if visitor.visit(level, idx, self, parent) == true {
             return true;
         }
         for (idx, child) in self.children.iter().enumerate() {
-            if child.traverse(level + 1, idx, visitor) {
+            if child.traverse(self, level + 1, idx, visitor) {
                 return true;
             };
         }
@@ -410,11 +411,10 @@ where
         let mut visitor = ItemByIdVisitor {
             target_id: id,
             item: None,
-            last_level: 0,
-            parent_item: Some(self),
+            parent_item: None,
         };
 
-        let _ = self.traverse(1, 0, &mut visitor);
+        let _ = self.traverse(self, 0, 0, &mut visitor);
 
         if let Some(item) = visitor.item {
             println!("item found: {:?}", item.identifier);
@@ -473,13 +473,12 @@ where
 }
 
 pub trait Visitor<'a, T, Identifier> {
-    fn visit(&mut self, level: usize, idx: usize, item: &'a TreeItem<Identifier>) -> bool;
+    fn visit(&mut self, level: usize, idx: usize, item: &'a TreeItem<Identifier>, parent_item: &'a TreeItem<Identifier>) -> bool;
 }
 
 pub struct ItemByIdVisitor<'a, Identifier> {
     target_id: Identifier,
     item: Option<&'a TreeItem<'a, Identifier>>,
-    last_level: usize,
     parent_item: Option<&'a TreeItem<'a, Identifier>>,
 }
 
@@ -487,16 +486,21 @@ impl<'a, Identifier> Visitor<'a, Identifier, Identifier> for ItemByIdVisitor<'a,
 where
     Identifier: Clone + PartialEq + Eq + core::hash::Hash + std::fmt::Debug,
 {
-    fn visit(&mut self, level: usize, idx: usize, item: &'a TreeItem<Identifier>) -> bool {
-        println!("level: {}, idx: {}, id: {:?}", level, idx, item.identifier);
-        if level == self.last_level {
-            self.parent_item = Some(item);
-        } else {
-            self.last_level = level;
-        }
+    fn visit(
+        &mut self,
+        level: usize,
+        idx: usize,
+        item: &'a TreeItem<Identifier>,
+        parent_item: &'a TreeItem<Identifier>
+    ) -> bool {
+        println!(
+            "id: {:?}:, level: {}, idx: {}",
+            item.identifier, level, idx
+        );
         if self.target_id == item.identifier {
-            println!("found: {:?}", item.identifier);
+            println!("     found: {:?}", item.identifier);
             self.item = Some(item);
+            self.parent_item = Some(parent_item);
             return true;
         } else {
             return false;
