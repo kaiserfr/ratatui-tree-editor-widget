@@ -111,7 +111,7 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
         match event::read()? {
             Event::Key(key) => match key.code {
                 KeyCode::Up if key.modifiers == KeyModifiers::SHIFT => {
-                    app.state.key_shift_up(&mut app.items)
+                    // app.state.key_shift_up(&mut app.items)
                 }
 
                 KeyCode::Char('q') => return Ok(()),

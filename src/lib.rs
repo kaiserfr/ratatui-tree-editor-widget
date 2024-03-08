@@ -231,35 +231,26 @@ where
         });
     }
 
-    pub fn key_shift_up(&mut self, items: &mut [TreeItem<Identifier>]) {
+    pub fn key_shift_up<'a>(&mut self, items: &'a mut [TreeItem<'a, Identifier>]) -> &'a mut [TreeItem<'a, Identifier>]{
         let mut parent = self.selected();
-        let id_option = parent.pop();
 
-        if let Some(id) = id_option {
-            for (index, item) in items.iter().enumerate() {
-                if self.selected().len() == 1 {
-                    // Top level items
-                    if item.identifier == id {
-                        if index == 0 {
-                            return;
-                        }
-                        items.swap(index, index - 1);
-                        return;
-                    }
-                } else if self.selected().len() > 1 {
-                    // Nested items
+        let selected_id = parent.pop().unwrap();
+        println!("selected_id: {:?}", selected_id);
 
-                    // let (parent, child, index) = item.traverse(&id);
-                    // if let Some(index) = index {
-                    //     if index == 0 {
-                    //         return;
-                    //     }
-                    //     parent.swap_children(index, index - 1);
-                    //     return;
-                    // }
-                }
+        let parent_id = parent.pop().unwrap();
+        println!("parent_id: {:?}", parent_id);
+
+        for item in items.iter_mut() {
+            if let Some(parent_path) = item.get_path_by_id(&parent_id) {
+                println!("parent_path: {:?}", parent_path);
+
+                let parent = item.get_item(parent_path.as_slice());
+                println!("parent: {:?}", parent);
+
+                let _ = parent.swap_children(0, 1);
             }
         }
+        items
     }
 
     /// Handles the down arrow key.
@@ -434,22 +425,19 @@ where
             let parent = self.get_item(&path);
             println!("Parent ID: {:?}", parent.identifier);
 
-            parent
-                .children
-                .swap(idx.unwrap()-1, idx.unwrap());
+            parent.children.swap(idx.unwrap() - 1, idx.unwrap());
         } else {
             println!("Not found");
         }
     }
 
-    pub fn print_tree(&self, level: usize) {
+    pub fn print_tree(&self, level: usize) -> () {
         let indent = "   ".repeat(level);
         println!("{}{:?}", indent, self.identifier);
         for child in &self.children {
             child.print_tree(level + 1);
         }
     }
-
 
     /// Get a reference to a child by index.
     #[must_use]

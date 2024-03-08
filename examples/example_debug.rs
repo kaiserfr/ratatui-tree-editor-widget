@@ -52,12 +52,73 @@ impl<'a> App<'a> {
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
+    println!("--------------------------------------------");
+
     let mut app = App::new();
 
-    // let item = &app.items[1].children()[1];
     let item = &mut app.items[1];
 
-    item.do_print4(&"f");
-    item.print_tree(0);
+    item.clone().print_tree(0);
+
+    println!("--------------------------------------------");
+
+    app.state.key_down(&app.items);
+    app.state.key_down(&app.items);
+    app.state.key_right();
+    app.state.key_down(&app.items);
+    app.state.key_down(&app.items);
+    app.state.key_right();
+    app.state.key_down(&app.items);
+    let app_items = app.state.key_shift_up(&mut app.items);
+
+    println!("{:?}", app.state);
+    println!("--------------------------------------------");
+
+
+    println!("--------------------------------------------");
+    println!("{:?}", app.state);
+
+    let item = &app_items[1];
+    item.clone().print_tree(0);
+
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_app_new() {
+        let app = App::new();
+        assert_eq!(app.state, TreeState::default());
+        assert_eq!(app.items.len(), 5);
+    }
+
+    #[test]
+    fn test_app_state_key_down() {
+        let mut app = App::new();
+        app.state.key_down(&app.items);
+        assert_eq!(app.state.selected(), Some(&"b"));
+    }
+
+    #[test]
+    fn test_app_state_key_right() {
+        let mut app = App::new();
+        app.state.key_down(&app.items);
+        app.state.key_right();
+        assert_eq!(app.state.selected(), Some(&"c"));
+    }
+
+    #[test]
+    fn test_app_state_key_shift_up() {
+        let mut app = App::new();
+        app.state.key_down(&app.items);
+        app.state.key_down(&app.items);
+        app.state.key_right();
+        app.state.key_down(&app.items);
+        app.state.key_down(&app.items);
+        app.state.key_shift_up(&mut app.items);
+        assert_eq!(app.state.selected(), Some(&"d"));
+    }
 }
