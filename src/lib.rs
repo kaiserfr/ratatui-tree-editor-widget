@@ -231,7 +231,7 @@ where
         });
     }
 
-    pub fn key_shift_up<'a>(&mut self, items: &'a mut [TreeItem<'a, Identifier>]) -> &'a mut [TreeItem<'a, Identifier>]{
+    pub fn key_shift_up<'a>(&mut self, items: &'a mut [TreeItem<'a, Identifier>]) -> () {
         let mut parent = self.selected();
 
         let selected_id = parent.pop().unwrap();
@@ -250,7 +250,6 @@ where
                 let _ = parent.swap_children(0, 1);
             }
         }
-        items
     }
 
     /// Handles the down arrow key.
@@ -380,7 +379,7 @@ where
         self.children.swap(a, b);
     }
 
-    fn get_path_by_id(&self, target: &Identifier) -> Option<Vec<usize>> {
+    pub fn get_path_by_id(&self, target: &Identifier) -> Option<Vec<usize>> {
         let mut stack = VecDeque::new();
         stack.push_back((vec![], self));
 
@@ -398,7 +397,7 @@ where
         None
     }
 
-    fn get_item(&mut self, path: &[usize]) -> &mut TreeItem<'a, Identifier> {
+    pub fn get_item(&mut self, path: &[usize]) -> &mut TreeItem<'a, Identifier> {
         let mut item = self;
         for &i in path {
             item = &mut item.children[i];
