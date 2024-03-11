@@ -1,16 +1,8 @@
-use crossterm::{
-    event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode},
-    execute,
-    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
-};
-use ratatui::{
-    backend::{Backend, CrosstermBackend},
-    style::{Color, Modifier, Style},
-    widgets::Block,
-    Terminal,
-};
-use std::error::Error;
-use std::io;
+use crossterm::event::{Event, KeyCode, MouseEventKind};
+use ratatui::backend::{Backend, CrosstermBackend};
+use ratatui::style::{Color, Modifier, Style};
+use ratatui::widgets::{Block, Scrollbar, ScrollbarOrientation};
+use ratatui::{Frame, Terminal};
 
 use tui_tree_widget::{Tree, TreeItem, TreeState};
 
@@ -57,29 +49,80 @@ impl<'a> App<'a> {
                 )
                 .expect("all item identifiers are unique"),
                 TreeItem::new_leaf("o", "Oscar"),
+                TreeItem::new(
+                    "p",
+                    "Papa",
+                    vec![
+                        TreeItem::new_leaf("q", "Quebec"),
+                        TreeItem::new_leaf("r", "Romeo"),
+                        TreeItem::new_leaf("s", "Sierra"),
+                        TreeItem::new_leaf("t", "Tango"),
+                        TreeItem::new_leaf("u", "Uniform"),
+                        TreeItem::new(
+                            "v",
+                            "Victor",
+                            vec![
+                                TreeItem::new_leaf("w", "Whiskey"),
+                                TreeItem::new_leaf("x", "Xray"),
+                                TreeItem::new_leaf("y", "Yankee"),
+                            ],
+                        )
+                        .expect("all item identifiers are unique"),
+                    ],
+                )
+                .expect("all item identifiers are unique"),
+                TreeItem::new_leaf("z", "Zulu"),
             ],
         }
     }
+
+    fn draw(&mut self, frame: &mut Frame) {
+        let area = frame.size();
+        let widget = Tree::new(self.items.clone())
+            .expect("all item identifiers are unique")
+            .block(
+                Block::bordered()
+                    .title("Tree Widget")
+                    .title_bottom(format!("{:?}", self.state)),
+            )
+            .experimental_scrollbar(Some(
+                Scrollbar::new(ScrollbarOrientation::VerticalRight)
+                    .begin_symbol(None)
+                    .track_symbol(None)
+                    .end_symbol(None),
+            ))
+            .highlight_style(
+                Style::new()
+                    .fg(Color::Black)
+                    .bg(Color::LightGreen)
+                    .add_modifier(Modifier::BOLD),
+            )
+            .highlight_symbol(">> ");
+        frame.render_stateful_widget(widget, area, &mut self.state);
+    }
 }
 
-fn main() -> Result<(), Box<dyn Error>> {
+fn main() -> std::io::Result<()> {
     // Terminal initialization
-    enable_raw_mode()?;
-    let mut stdout = io::stdout();
-    execute!(stdout, EnterAlternateScreen, EnableMouseCapture)?;
-    let backend = CrosstermBackend::new(stdout);
-    let mut terminal = Terminal::new(backend)?;
+    crossterm::terminal::enable_raw_mode()?;
+    let mut stdout = std::io::stdout();
+    crossterm::execute!(
+        stdout,
+        crossterm::terminal::EnterAlternateScreen,
+        crossterm::event::EnableMouseCapture
+    )?;
+    let mut terminal = Terminal::new(CrosstermBackend::new(stdout))?;
 
     // App
     let app = App::new();
     let res = run_app(&mut terminal, app);
 
     // restore terminal
-    disable_raw_mode()?;
-    execute!(
+    crossterm::terminal::disable_raw_mode()?;
+    crossterm::execute!(
         terminal.backend_mut(),
-        LeaveAlternateScreen,
-        DisableMouseCapture
+        crossterm::terminal::LeaveAlternateScreen,
+        crossterm::event::DisableMouseCapture
     )?;
     terminal.show_cursor()?;
 
@@ -90,25 +133,10 @@ fn main() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<()> {
+fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> std::io::Result<()> {
+    terminal.draw(|frame| app.draw(frame))?;
     loop {
-        terminal.draw(|f| {
-            let area = f.size();
-
-            let items = Tree::new(app.items.clone())
-                .expect("all item identifiers are unique")
-                .block(Block::bordered().title(format!("Tree Widget {:?}", app.state)))
-                .highlight_style(
-                    Style::new()
-                        .fg(Color::Black)
-                        .bg(Color::LightGreen)
-                        .add_modifier(Modifier::BOLD),
-                )
-                .highlight_symbol(">> ");
-            f.render_stateful_widget(items, area, &mut app.state);
-        })?;
-
-        match event::read()? {
+        let update = match crossterm::event::read()? {
             Event::Key(key) => match key.code {
                 KeyCode::Char('q') => return Ok(()),
                 KeyCode::Char('\n' | ' ') => app.state.toggle_selected(),
@@ -116,22 +144,22 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
                 KeyCode::Right => app.state.key_right(),
                 KeyCode::Down => app.state.key_down(&app.items),
                 KeyCode::Up => app.state.key_up(&app.items),
-                KeyCode::Home => {
-                    app.state.select_first(&app.items);
-                }
-                KeyCode::End => {
-                    app.state.select_last(&app.items);
-                }
+                KeyCode::Esc => app.state.select(Vec::new()),
+                KeyCode::Home => app.state.select_first(&app.items),
+                KeyCode::End => app.state.select_last(&app.items),
                 KeyCode::PageDown => app.state.scroll_down(3),
                 KeyCode::PageUp => app.state.scroll_up(3),
-                _ => {}
+                _ => false,
             },
             Event::Mouse(mouse) => match mouse.kind {
-                event::MouseEventKind::ScrollDown => app.state.scroll_down(1),
-                event::MouseEventKind::ScrollUp => app.state.scroll_up(1),
-                _ => {}
+                MouseEventKind::ScrollDown => app.state.scroll_down(1),
+                MouseEventKind::ScrollUp => app.state.scroll_up(1),
+                _ => false,
             },
-            _ => {}
+            _ => false,
+        };
+        if update {
+            terminal.draw(|frame| app.draw(frame))?;
         }
     }
 }
